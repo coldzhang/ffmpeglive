@@ -5,11 +5,13 @@ extern "C"
 #include <libswscale/swscale.h>
 #include<libavcodec/avcodec.h>
 #include<libavformat/avformat.h>
+#include <libswresample/swresample.h>
 }
 
 #pragma comment(lib, "swscale.lib")
 #pragma comment(lib, "avcodec.lib")
 #pragma comment(lib, "avutil.lib")
+#pragma comment(lib, "swresample.lib")
 
 #include <iostream>
 using namespace std;
@@ -63,6 +65,11 @@ public:
 			vsc = NULL;
 		}
 
+		if (asc)
+		{
+			swr_free(&asc);
+		}
+
 		if (yuv)
 		{
 			av_frame_free(&yuv);//此函数不仅会释放数据内存，还会内部将yuv置null
@@ -73,30 +80,44 @@ public:
 			avcodec_free_context(&vc);//释放编码器上下文，内部同时会关闭编码器
 		}
 
+		if (pcm)
+		{
+			av_frame_free(&pcm);//此函数不仅会释放数据内存，还会内部将yuv置null
+		}
+
+
 		vpts = 0;
-		av_packet_unref(&pack);
+		av_packet_unref(&vpack);
+		apts = 0;
+		av_packet_unref(&apack);
+	}
+
+	bool InitAudioCode()
+	{
+		///4 初始化音频编码器
+		if (!CreateCodec(AV_CODEC_ID_AAC))
+		{
+			return false;
+		}
+
+		ac->bit_rate = 40000;
+		ac->sample_rate = sampleRate;
+		ac->sample_fmt = AV_SAMPLE_FMT_FLTP;
+		ac->channels = channels;
+		ac->channel_layout = av_get_default_channel_layout(channels);
+
+		//打开音频编码器
+		return OpenCodec(&ac);
 	}
 
 	bool InitVideoCodec()
 	{
 		/// 4.初始化编码上下文
 		//a 找到编码器
-		AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_H264);//并不需要释放指针内存，因为仅是取得内存地址而已
-		if (!codec)
+		if (!CreateCodec(AV_CODEC_ID_H264))
 		{
-			cout << "Can not find h264 encoder!" << endl;
 			return false;
 		}
-		//b 创建编码器上下文
-		vc = avcodec_alloc_context3(codec);
-		if (!vc)
-		{
-			cout << "avcodec_alloc_context3 failed!" << endl;
-		}
-		//c 配置编码器参数
-		vc->flags = AV_CODEC_FLAG_GLOBAL_HEADER;//全局参数
-		vc->codec_id = codec->id;
-		vc->thread_count = XGetCpuNum();//编码的线程数量
 
 		vc->bit_rate = 50 * 1024 * 8;//压缩后每秒视频的bit位大小 50kB
 		vc->width = outWidth;
@@ -104,10 +125,10 @@ public:
 		vc->time_base = { 1, fps };//时间戳基数，其实就是每一帧占用的时长
 		vc->framerate = { fps, 1 };//帧率
 
-								   /*画面组的大小，多少帧一个关键帧
-								   关键帧越大，则压缩率越高，因为后面的帧比如P帧，B帧都是保存与前帧或后帧的变化数据。但是带来的负面影响
-								   就是比如得到第50帧，那么得将前面49帧全部解码才能显示第50帧
-								   */
+		/*画面组的大小，多少帧一个关键帧
+		关键帧越大，则压缩率越高，因为后面的帧比如P帧，B帧都是保存与前帧或后帧的变化数据。但是带来的负面影响
+		就是比如得到第50帧，那么得将前面49帧全部解码才能显示第50帧
+		*/
 		vc->gop_size = 50;
 		/*
 		设置B帧数量为0，表示不编码B帧，这样pts和dts则一致
@@ -121,24 +142,13 @@ public:
 		第一个参数是编码器上下文，第二个参数是编码器，若在avcodec_alloc_context3调用时设置了，则这里可以
 		不指定，设为0，第三个参数设置也默认设为0
 		*/
-		int ret = avcodec_open2(vc, 0, 0);
-		if (ret != 0)
-		{
-			char buf[1024] = { 0 };
-			av_strerror(ret, buf, sizeof(buf) - 1);
-			cout << buf << endl;
-			return false;
-		}
-
-		cout << "avcodec_open2 success!" << endl;
-
-		return true;
+		return OpenCodec(&vc);;
 	}
 
 	//视频编码
 	AVPacket* EncodeVideo(AVFrame* frame)
 	{
-		av_packet_unref(&pack);//先清理上次packet的数据
+		av_packet_unref(&vpack);//先清理上次packet的数据
 
 		///h264编码
 		frame->pts = vpts;
@@ -162,13 +172,32 @@ public:
 		/*
 		调用avcodec_receive_packet时，第二个参数每次都会内部先调用av_frame_unref进行清掉
 		*/
-		ret = avcodec_receive_packet(vc, &pack);
-		if (ret != 0 || pack.size <= 0)
+		ret = avcodec_receive_packet(vc, &vpack);
+		if (ret != 0 || vpack.size <= 0)
 		{
 			return NULL;
 		}
 
-		return &pack;
+		return &vpack;
+	}
+
+	AVPacket* EncodeAudio(AVFrame* frame)
+	{
+		//pts运算
+		//nb_sample/sample_rate = 一帧音频的秒数sec
+		//timebase pts = sec * timebase.den
+		pcm->pts = apts;
+		apts += av_rescale_q(pcm->nb_samples, { 1, sampleRate }, ac->time_base);
+
+		int ret = avcodec_send_frame(ac, pcm);
+		if (ret != 0) return NULL;
+
+		av_packet_unref(&apack);
+		ret = avcodec_receive_packet(ac, &apack);
+		if (ret != 0) return NULL;
+
+		cout << apack.size << " " << flush;
+		return &apack;
 	}
 
 	bool InitScale()
@@ -233,12 +262,120 @@ public:
 		return yuv;
 	}
 
+	bool InitResample()
+	{
+		/*
+		qt录制出来的音频采样点格式是UnSignedInt，但是aac编码需要的格式是float类型，因此需要重采样
+		*/
+		///2 音频重采样 上下文初始化 
+		asc = swr_alloc_set_opts(asc,
+			av_get_default_channel_layout(channels), (AVSampleFormat)outSampleFmt, sampleRate,//输出格式
+			av_get_default_channel_layout(channels), (AVSampleFormat)inSampleFmt, sampleRate, 0, 0); //输入格式																	//输入格式
+		if (!asc)
+		{
+			cout << "swr_alloc_set_opts failed!" << endl;
+			return false;
+		}
+
+		int ret = swr_init(asc);
+		if (ret != 0)
+		{
+			char err[1024] = { 0 };
+			av_strerror(ret, err, sizeof(err) - 1);
+			cout << err << endl;
+
+			return false;
+		}
+
+		cout << "音频重采样上下文初始化成功" << endl;
+
+		///3 音频重采样输出空间分配
+		pcm = av_frame_alloc();
+		pcm->format = outSampleFmt;
+		pcm->channels = channels;
+		pcm->channel_layout = av_get_default_channel_layout(channels);
+		pcm->nb_samples = nbSample; //一帧音频一通道的采样点数，内部然后可以通过这个值及通道数，及采样点的大小计算一秒的音频字节数及一帧音频的字节数
+		ret = av_frame_get_buffer(pcm, 0);//给pcm分配存储空间，第二个参数传0表示不需要对齐
+		if (ret != 0)
+		{
+			char err[1024] = { 0 };
+			av_strerror(ret, err, sizeof(err) - 1);
+			cout << err << endl;
+
+			return false;
+		}
+
+		return true;
+	}
+
+	AVFrame* Resample(char* data)
+	{
+		//已经读一帧源数据
+		//重采样源数据
+		const uint8_t *indata[AV_NUM_DATA_POINTERS] = { 0 };
+		indata[0] = (uint8_t *)data;
+		//返回重采样后每一个声道的采样点数
+		int len = swr_convert(asc, pcm->data, pcm->nb_samples,//输出参数，输出存储地址和样本数量
+			indata, pcm->nb_samples);
+
+		if (len <= 0)
+		{
+			return NULL;
+		}
+
+		return pcm;
+	}
 private:
+	bool CreateCodec(AVCodecID cid) 
+	{
+		///4 初始化音频编码器
+		AVCodec *codec = avcodec_find_encoder(cid);
+		if (!codec)
+		{
+			cout << "avcodec_find__encoder failed!" << endl;
+			return false;
+		}
+
+		//音频编码器上下文
+		ac = avcodec_alloc_context3(codec);
+		if (!ac)
+		{
+			cout << "avcodec_alloc_context3 failed!" << endl;
+			return false;
+		}
+
+		cout << "avcodec_alloc_context3 success!" << endl;
+
+		ac->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+		ac->thread_count = XGetCpuNum();
+
+		return true;
+	}
+
+	bool OpenCodec(AVCodecContext **c)
+	{
+		//打开音频编码器
+		int ret = avcodec_open2(*c, 0, 0);
+		if (ret != 0)
+		{
+			char err[1024] = { 0 };
+			av_strerror(ret, err, sizeof(err) - 1);
+			cout << err << endl;
+			avcodec_free_context(c);
+			return false;
+		}
+		cout << "avcodec_open2 success!" << endl;
+	}
+
 	SwsContext *vsc = NULL;//像素格式转换上下文
 	AVFrame *yuv = NULL;//输出的YUV
 	//AVCodecContext *vc = NULL;//编码器上下文
-	AVPacket pack = {0};
+	AVPacket vpack = {0};//视频帧
+	AVPacket apack = {0};//音频帧
 	int vpts = 0;
+	int apts = 0;
+	SwrContext* asc = NULL;//音频重采样上下文
+	AVFrame *pcm = NULL;//重采样输出的pcm
 };
 
 XMediaEncode* XMediaEncode::Get(unsigned char index)

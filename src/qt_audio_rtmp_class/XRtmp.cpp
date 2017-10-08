@@ -7,6 +7,7 @@ using namespace std;
 extern "C"
 {
 	#include <libavformat/avformat.h>
+	#include <libavutil/time.h>
 }
 
 #pragma comment(lib, "avformat.lib")
@@ -68,6 +69,11 @@ public:
 			vc = c;
 			vs = st;
 		}
+		else if (c->codec_type == AVMEDIA_TYPE_AUDIO)
+		{
+			ac = c;
+			as = st;
+		}
 
 		return true;
 	}
@@ -104,12 +110,32 @@ public:
 
 	bool SendFrame(AVPacket *pack)
 	{
+		if (!pack || pack->size <= 0 || !pack->data) return false;
+		AVRational stime;
+		AVRational dtime;
+
+		//判断音频还是视频
+		if (vs && vc && pack->stream_index == vs->index)
+		{
+			stime = vc->time_base;
+			dtime = vs->time_base;
+		}
+		else if (as && ac && pack->stream_index == as->index)
+		{
+			stime = ac->time_base;
+			dtime = as->time_base;
+		}
+		else
+		{
+			return false;
+		}
 		//推流
 		/*
 		编码和推流的timebase会有变化，编码是使用帧率进行计算的。推流时要改为使用推流时的timebase重新进行计算
 		*/
-		pack->pts = av_rescale_q(pack->pts, vc->time_base, vs->time_base);
-		pack->dts = av_rescale_q(pack->dts, vc->time_base, vs->time_base);
+		pack->pts = av_rescale_q(pack->pts, stime, dtime);
+		pack->dts = av_rescale_q(pack->dts, stime, dtime);
+		pack->duration = av_rescale_q(pack->duration, stime, dtime);
 		/*这个函数内部有缓冲排序，会进行P帧B帧排序，同时还会自动释放packet的空间，不管成功与否
 		相对于av_write_frame
 		*/
@@ -117,17 +143,23 @@ public:
 		if (ret == 0)
 		{
 			cout << "#" << flush;
+			return true;
 		}
-		return true;
 	}
 private:
 	//rtmp flv封装器
 	AVFormatContext *ic = NULL;
 
-	//视频编码器流
+	//视频编码器
 	const AVCodecContext *vc = NULL;
 
+	//音频编码器
+	const AVCodecContext *ac = NULL;
+
+	//视频流
 	AVStream *vs = NULL;
+	//音频流
+	AVStream *as = NULL;
 
 	string url = "";
 };
