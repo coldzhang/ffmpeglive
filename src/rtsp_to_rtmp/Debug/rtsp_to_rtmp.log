@@ -1,0 +1,13 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(368,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (file_to_rtmp.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  main.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\src\rtsp_to_rtmp\main.cpp(90): warning C4018: “<”: 有符号/无符号不匹配
+e:\ffmpeglive\src\rtsp_to_rtmp\main.cpp(93): warning C4996: 'AVStream::codec': 被声明为已否决
+  e:\ffmpeglive\include\libavformat\avformat.h(893): note: 参见“AVStream::codec”的声明
+e:\ffmpeglive\src\rtsp_to_rtmp\main.cpp(102): warning C4996: 'AVStream::codec': 被声明为已否决
+  e:\ffmpeglive\include\libavformat\avformat.h(893): note: 参见“AVStream::codec”的声明
+e:\ffmpeglive\src\rtsp_to_rtmp\main.cpp(153): warning C4244: “=”: 从“double”转换到“__int64”，可能丢失数据
+e:\ffmpeglive\src\rtsp_to_rtmp\main.cpp(155): warning C4244: “参数”: 从“__int64”转换到“unsigned int”，可能丢失数据
+  rtsp_to_rtmp.vcxproj -> E:\ffmpeglive\src\rtsp_to_rtmp\..\..\bin\rtsp_to_rtmp.exe
+  rtsp_to_rtmp.vcxproj -> ..\..\bin\rtsp_to_rtmp.pdb (Full PDB)

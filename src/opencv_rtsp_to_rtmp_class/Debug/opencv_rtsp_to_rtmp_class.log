@@ -1,0 +1,24 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(368,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (opencv_rtsp_to_rtmp.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  XRtmp.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\include\libavcodec\avcodec.h(1645): warning C4099: “AVPacket”: 类型名称以前使用“class”现在使用的是“struct”
+  e:\ffmpeglive\include\libavcodec\avcodec.h(1645): note: 参见“AVPacket”的声明
+e:\ffmpeglive\include\libavcodec\avcodec.h(1743): warning C4099: “AVCodecContext”: 类型名称以前使用“class”现在使用的是“struct”
+  e:\ffmpeglive\include\libavcodec\avcodec.h(1743): note: 参见“AVCodecContext”的声明
+  XMediaEncode.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\include\libavcodec\avcodec.h(1743): warning C4099: “AVCodecContext”: 类型名称以前使用“class”现在使用的是“struct”
+  e:\ffmpeglive\include\libavcodec\avcodec.h(1743): note: 参见“AVCodecContext”的声明
+  main.cpp
+e:\ffmpeglive\include\opencv2\core\mat.hpp(1926): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\include\opencv2\core\persistence.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\include\opencv2\core\utility.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\include\opencv2\core\utility.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+e:\ffmpeglive\src\opencv_rtsp_to_rtmp_class\xrtmp.h(4): warning C4099: “AVPacket”: 类型名称以前使用“struct”现在使用的是“class”
+  e:\ffmpeglive\src\opencv_rtsp_to_rtmp_class\xmediaencode.h(4): note: 参见“AVPacket”的声明
+e:\ffmpeglive\src\opencv_rtsp_to_rtmp_class\main.cpp(50): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+e:\ffmpeglive\src\opencv_rtsp_to_rtmp_class\main.cpp(51): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+  正在生成代码...
+  opencv_rtsp_to_rtmp_class.vcxproj -> E:\ffmpeglive\src\opencv_rtsp_to_rtmp_class\..\..\bin\opencv_rtsp_to_rtmp_class.exe
+  opencv_rtsp_to_rtmp_class.vcxproj -> ..\..\bin\opencv_rtsp_to_rtmp_class.pdb (Full PDB)

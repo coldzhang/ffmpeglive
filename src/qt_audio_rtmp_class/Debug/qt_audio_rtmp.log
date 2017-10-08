@@ -1,0 +1,11 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(368,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (qt_audio_rtmp.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  main.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  XMediaEncode.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  XRtmp.cpp
+e:\ffmpeglive\include\libavutil\rational.h : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  正在生成代码...
+  qt_audio_rtmp.vcxproj -> E:\ffmpeglive\src\qt_audio_rtmp_class\..\..\bin\qt_audio_rtmp_class.exe
+  qt_audio_rtmp.vcxproj -> ..\..\bin\qt_audio_rtmp_class.pdb (Full PDB)
