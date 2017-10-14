@@ -1,8 +1,11 @@
 e:\ffmpeglive\src\audio_video_rtmp_class\debug\vc140.pdb
 e:\ffmpeglive\src\audio_video_rtmp_class\debug\xrtmp.obj
 e:\ffmpeglive\src\audio_video_rtmp_class\debug\xmediaencode.obj
-e:\ffmpeglive\src\audio_video_rtmp_class\debug\main.obj
 e:\ffmpeglive\src\audio_video_rtmp_class\debug\xaudiorecord.obj
+e:\ffmpeglive\src\audio_video_rtmp_class\debug\main.obj
+e:\ffmpeglive\src\audio_video_rtmp_class\debug\xdatathread.obj
+e:\ffmpeglive\src\audio_video_rtmp_class\debug\xdata.obj
+e:\ffmpeglive\src\audio_video_rtmp_class\debug\xvideocapture.obj
 e:\ffmpeglive\bin\audio_video_rtmp_class.ilk
 e:\ffmpeglive\bin\audio_video_rtmp_class.exe
 e:\ffmpeglive\bin\audio_video_rtmp_class.pdb

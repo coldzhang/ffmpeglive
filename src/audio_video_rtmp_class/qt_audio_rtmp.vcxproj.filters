@@ -38,6 +38,15 @@
     <ClCompile Include="XAudioRecord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="XVideoCapture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XDataThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="XMediaEncode.h">
@@ -47,6 +56,15 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="XAudioRecord.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XVideoCapture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XDataThread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

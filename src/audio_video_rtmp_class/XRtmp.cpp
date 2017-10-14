@@ -46,16 +46,16 @@ public:
 		return true;
 	}
 
-	bool AddStream(const AVCodecContext *c)
+	int AddStream(const AVCodecContext *c)
 	{
-		if (!c) return false;
+		if (!c) return -1;
 		
 		//b 添加视频流, 新流
 		AVStream *st = avformat_new_stream(ic, NULL);
 		if (!st)
 		{
 			cout<<"avformat_new_stream failed!"<<endl;
-			return false;
+			return -1;
 		}
 
 		st->codecpar->codec_tag = 0;//首先设置为0，避免出错
@@ -75,7 +75,7 @@ public:
 			as = st;
 		}
 
-		return true;
+		return st->index;
 	}
 
 	bool SendHead()
@@ -108,9 +108,13 @@ public:
 		return true;
 	}
 
-	bool SendFrame(AVPacket *pack)
+	bool SendFrame(XData d, int streamIndex)
 	{
-		if (!pack || pack->size <= 0 || !pack->data) return false;
+		if (!d.data || d.size <= 0) return false;
+
+		AVPacket *pack = (AVPacket*)d.data;
+		pack->stream_index = streamIndex;
+
 		AVRational stime;
 		AVRational dtime;
 
@@ -145,6 +149,8 @@ public:
 			cout << "#" << flush;
 			return true;
 		}
+
+		return false;
 	}
 private:
 	//rtmp flv封装器

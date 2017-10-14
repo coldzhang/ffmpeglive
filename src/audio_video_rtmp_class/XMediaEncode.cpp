@@ -95,7 +95,7 @@ public:
 	bool InitAudioCode()
 	{
 		///4 初始化音频编码器
-		if (!CreateCodec(AV_CODEC_ID_AAC))
+		if (!(ac = CreateCodec(AV_CODEC_ID_AAC)))
 		{
 			return false;
 		}
@@ -114,7 +114,7 @@ public:
 	{
 		/// 4.初始化编码上下文
 		//a 找到编码器
-		if (!CreateCodec(AV_CODEC_ID_H264))
+		if (!(vc = CreateCodec(AV_CODEC_ID_H264)))
 		{
 			return false;
 		}
@@ -122,7 +122,7 @@ public:
 		vc->bit_rate = 50 * 1024 * 8;//压缩后每秒视频的bit位大小 50kB
 		vc->width = outWidth;
 		vc->height = outHeight;
-		vc->time_base = { 1, fps };//时间戳基数，其实就是每一帧占用的时长
+		//vc->time_base = { 1, fps };//时间戳基数，其实就是每一帧占用的时长
 		vc->framerate = { fps, 1 };//帧率
 
 		/*画面组的大小，多少帧一个关键帧
@@ -146,13 +146,17 @@ public:
 	}
 
 	//视频编码
-	AVPacket* EncodeVideo(AVFrame* frame)
+	XData EncodeVideo(XData frame)
 	{
 		av_packet_unref(&vpack);//先清理上次packet的数据
 
+		XData r;
+		if (frame.size <= 0 || !frame.data) return r;
+		AVFrame* p = (AVFrame*)frame.data;
+
 		///h264编码
-		frame->pts = vpts;
-		vpts++;
+		//frame->pts = vpts;
+		//vpts++;
 		/*
 		编码分两个步骤avcodec_send_frame和avcodec_receive_packet
 		avcodec_send_frame只是单线程简单的将数据拷贝过去，而avcodec_receive_packet是会
@@ -163,10 +167,10 @@ public:
 		avcodec_send_frame内部是会有缓冲，因此不一定调用了avcodec_send_frame，就会avcodec_receive_packet获取到数据，
 		若将第二个参数传null，可以获取到缓冲区内的数据
 		*/
-		int ret = avcodec_send_frame(vc, frame);
+		int ret = avcodec_send_frame(vc, p);
 		if (ret != 0)
 		{
-			return NULL;
+			return r;
 		}
 
 		/*
@@ -175,29 +179,46 @@ public:
 		ret = avcodec_receive_packet(vc, &vpack);
 		if (ret != 0 || vpack.size <= 0)
 		{
-			return NULL;
+			return r;
 		}
 
-		return &vpack;
+		r.data = (char*)&vpack;
+		r.size = vpack.size;
+		r.pts = frame.pts;
+
+		return r;
 	}
 
-	AVPacket* EncodeAudio(AVFrame* frame)
+	long long lasta = -1;
+	XData EncodeAudio(XData frame)
 	{
+		XData r;
+
 		//pts运算
 		//nb_sample/sample_rate = 一帧音频的秒数sec
 		//timebase pts = sec * timebase.den
-		pcm->pts = apts;
-		apts += av_rescale_q(pcm->nb_samples, { 1, sampleRate }, ac->time_base);
+		if (frame.size <= 0 || !frame.data) return r;
 
-		int ret = avcodec_send_frame(ac, pcm);
-		if (ret != 0) return NULL;
+		AVFrame* p = (AVFrame* )frame.data;
+		if (lasta == p->pts)
+		{
+			p->pts += 1200;
+		}
+		lasta = p->pts;
+
+		int ret = avcodec_send_frame(ac, p);
+		if (ret != 0) return r;
 
 		av_packet_unref(&apack);
 		ret = avcodec_receive_packet(ac, &apack);
-		if (ret != 0) return NULL;
+		if (ret != 0) return r;
 
 		cout << apack.size << " " << flush;
-		return &apack;
+		r.data = (char*)&apack;
+		r.size = apack.size;
+		r.pts = frame.pts;
+
+		return r;
 	}
 
 	bool InitScale()
@@ -233,14 +254,17 @@ public:
 		return true;
 	}
 
-	AVFrame* RGBToYUV(char *rgb)
+	XData RGBToYUV(XData d)
 	{
+		XData r;
+		r.pts = d.pts;
+
 		//rgb to yuv
 		//输入的数据结构
 		uint8_t *indata[AV_NUM_DATA_POINTERS] = { 0 };
 		//indata[0]  bgrbgrbgr
 		//plane indata[0] bbbbb indata[1]ggggg indata[2]rrrrr
-		indata[0] = (uint8_t*)rgb;
+		indata[0] = (uint8_t*)d.data;
 		int insize[AV_NUM_DATA_POINTERS] = { 0 };
 		//一行(宽)数据的字节数
 		insize[0] = inWidth * inPixSize;
@@ -256,10 +280,20 @@ public:
 			yuv->data, yuv->linesize);//目标数据的buffer和目标图像一行的字节数
 		if (h <= 0)
 		{
-			return NULL;
+			return r;
 		}
 
-		return yuv;
+		yuv->pts = d.pts;
+
+		r.data = (char*)yuv;
+		int *p = yuv->linesize;
+		while (*p)
+		{
+			r.size += (*p)*outHeight;
+			p++;
+		}
+
+		return r;
 	}
 
 	bool InitResample()
@@ -308,48 +342,57 @@ public:
 		return true;
 	}
 
-	AVFrame* Resample(char* data)
+	XData Resample(XData d)
 	{
+		XData r;
+
 		//已经读一帧源数据
 		//重采样源数据
 		const uint8_t *indata[AV_NUM_DATA_POINTERS] = { 0 };
-		indata[0] = (uint8_t *)data;
+		indata[0] = (uint8_t *)d.data;
 		//返回重采样后每一个声道的采样点数
 		int len = swr_convert(asc, pcm->data, pcm->nb_samples,//输出参数，输出存储地址和样本数量
 			indata, pcm->nb_samples);
 
 		if (len <= 0)
 		{
-			return NULL;
+			return r;
 		}
 
-		return pcm;
+		pcm->pts = d.pts;
+
+		r.data = (char*)pcm;
+		r.size = pcm->nb_samples*pcm->channels * 2;
+		r.pts = d.pts;
+
+		return r;
 	}
 private:
-	bool CreateCodec(AVCodecID cid) 
+	AVCodecContext* CreateCodec(AVCodecID cid) 
 	{
 		///4 初始化音频编码器
 		AVCodec *codec = avcodec_find_encoder(cid);
 		if (!codec)
 		{
 			cout << "avcodec_find__encoder failed!" << endl;
-			return false;
+			return NULL;
 		}
 
 		//音频编码器上下文
-		ac = avcodec_alloc_context3(codec);
-		if (!ac)
+		AVCodecContext* c = avcodec_alloc_context3(codec);
+		if (!c)
 		{
 			cout << "avcodec_alloc_context3 failed!" << endl;
-			return false;
+			return NULL;
 		}
 
 		cout << "avcodec_alloc_context3 success!" << endl;
 
-		ac->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-		ac->thread_count = XGetCpuNum();
+		c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+		c->thread_count = XGetCpuNum();
+		c->time_base = { 1, 1000000 };
 
-		return true;
+		return c;
 	}
 
 	bool OpenCodec(AVCodecContext **c)

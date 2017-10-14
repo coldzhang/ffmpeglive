@@ -1,5 +1,5 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(368,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
 C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (qt_audio_rtmp_class.vcxproj, qt_audio_rtmp.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  main.cpp
+  XDataThread.cpp
   qt_audio_rtmp.vcxproj -> E:\ffmpeglive\src\audio_video_rtmp_class\..\..\bin\audio_video_rtmp_class.exe
   qt_audio_rtmp.vcxproj -> ..\..\bin\audio_video_rtmp_class.pdb (Full PDB)
