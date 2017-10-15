@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
 
 	///打开摄像机
 	XVideoCapture *xv = XVideoCapture::Get();
-	if (!xv->Init(0))
+	if (!xv->Init(0))//初始化视频录制器，打开摄像头
 	{
 		cout << "open camera failed!" << endl;
 		getchar();
 	}
 
 	cout << "open camera success!" << endl;
-	xv->Start();
+	xv->Start();//开启视频录制线程
 
 	//1 qt音频开始录制
 	XAudioRecord *ar= XAudioRecord::Get();
@@ -42,25 +42,26 @@ int main(int argc, char *argv[])
 	ar->channels = channels;
 	ar->sampleByte = sampleByte;
 	ar->nbSamples = nbSample;
-	if (!ar->Init())
+	if (!ar->Init())//初始化音频录制器，打开音频设备
 	{
 		cout << "XAudioRecord Init failed!" << endl;
 		getchar();
 		return -1;
 	}
 
-	ar->Start();
+	ar->Start();//开启音频录制线程
 
-	///音视频编码类
+	///音视频编码类，音视频编码封装在一个类中
 	XMediaEncode* xe = XMediaEncode::Get();
 
 	//2 初始化格式转换上下文
 	//3 初始化输出的数据结构
-	xe->inWidth = xv->width;
+	xe->inWidth = xv->width;//将从摄像头获取到信息进行赋值
 	xe->inHeight = xv->height;
 	xe->outWidth = xv->width;
 	xe->outHeight = xv->height;
 
+	//初始化像素格式转换上下文，用于将摄像头返回的rgb图像转换为yuv格式，用于编码
 	if (!xe->InitScale())
 	{
 		getchar();
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
 	xe->sampleRate = sampleRate;
 	xe->inSampleFmt = XSampleFMT::X_S16;
 	xe->outSampleFmt = XSampleFMT::X_FLATP;
-	if (!xe->InitResample())
+	if (!xe->InitResample())//初始化音频重采样上下文
 	{
 		getchar();
 		return -1;
@@ -132,16 +133,16 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	ar->Clear();
+	ar->Clear();//首先清除视频和音频录制链表中所有的数据
 	xv->Clear();
-	long long beginTime = GetCurTime();
+	long long beginTime = GetCurTime();//取得当前一个起始时间戳，可以用于后面取时间戳差值，避免时间戳过大的问题
 
 	//一次读取一帧音频的字节数
 	for (;;)
 	{
 		//一次读取一帧音频
-		XData ad = ar->Pop();
-		XData vd = xv->Pop();
+		XData ad = ar->Pop();//读取音频包
+		XData vd = xv->Pop();//读取视频包
 
 		if (ad.size <= 0 && vd.size <= 0)
 		{
@@ -152,7 +153,7 @@ int main(int argc, char *argv[])
 		//处理音频
 		if (ad.size > 0)
 		{
-			ad.pts = ad.pts - beginTime;
+			ad.pts = ad.pts - beginTime;//减去一个记录的时间戳，然后重新存储时间戳，可以编码数据包中时间戳过大的问题
 
 			//重采样源数据
 			XData pcm = xe->Resample(ad);

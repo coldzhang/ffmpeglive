@@ -5,6 +5,7 @@ extern "C"
 #include <libavutil/time.h>
 }
 
+//数据包类，用于封装数据
 class XData
 {
 public:

@@ -200,7 +200,7 @@ public:
 		if (frame.size <= 0 || !frame.data) return r;
 
 		AVFrame* p = (AVFrame* )frame.data;
-		if (lasta == p->pts)
+		if (lasta == p->pts)//前后时间戳不能相等，若相等，可以将当前时间戳增加一点
 		{
 			p->pts += 1200;
 		}
@@ -287,7 +287,7 @@ public:
 
 		r.data = (char*)yuv;
 		int *p = yuv->linesize;
-		while (*p)
+		while (*p)//累加得到yuv图像的总大小
 		{
 			r.size += (*p)*outHeight;
 			p++;
@@ -389,8 +389,8 @@ private:
 		cout << "avcodec_alloc_context3 success!" << endl;
 
 		c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-		c->thread_count = XGetCpuNum();
-		c->time_base = { 1, 1000000 };
+		c->thread_count = XGetCpuNum();//设置了编码器的内部编码线程数量
+		c->time_base = { 1, 1000000 };//设置时间戳基准
 
 		return c;
 	}

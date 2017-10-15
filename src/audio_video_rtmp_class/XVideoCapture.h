@@ -2,6 +2,7 @@
 
 #include "XDataThread.h"
 
+//继承了数据线程类
 class XVideoCapture : public XDataThread
 {
 public:

@@ -5,6 +5,7 @@
 #include <list>
 #include <QMutex>
 
+//数据线程类
 class XDataThread : public QThread
 {
 public:
@@ -27,7 +28,7 @@ public:
 
 protected:
 	//存放交互数据 插入策略，先进先出
-	std::list<XData> datas;
+	std::list<XData> datas;//链表
 	//交互数据列表大小
 	int dataCount = 0;
 	//互斥访问datas

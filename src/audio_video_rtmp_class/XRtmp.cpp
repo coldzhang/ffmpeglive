@@ -21,9 +21,11 @@ public:
 		{
 			avformat_close_input(&ic);
 			vs = NULL;
+			as = NULL;
 		}
 
 		vc = NULL;
+		ac = NULL;
 		url = "";
 	}
 
@@ -75,7 +77,7 @@ public:
 			as = st;
 		}
 
-		return st->index;
+		return st->index;//返回流的索引
 	}
 
 	bool SendHead()

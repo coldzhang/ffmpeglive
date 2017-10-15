@@ -1,5 +1,6 @@
 #include "XDataThread.h"
 
+//清除链表中所有数据
 void XDataThread::Clear()
 {
 	mutex.lock();
@@ -16,12 +17,12 @@ void XDataThread::Clear()
 void XDataThread::Push(XData d)
 {
 	mutex.lock();
-	if (datas.size() > maxList)
+	if (datas.size() > maxList)//数据链表中的缓存大于最大值
 	{
-		datas.front().Drop();
-		datas.pop_front();
+		datas.front().Drop();//先清除头节点旧数据
+		datas.pop_front();//并将整个数据包节点从链表中删除
 	}
-	datas.push_back(d);
+	datas.push_back(d);//将新数据放入链表的尾节点
 	mutex.unlock();
 }
 
@@ -29,12 +30,12 @@ void XDataThread::Push(XData d)
 XData XDataThread::Pop()
 {
 	mutex.lock();
-	if (datas.empty())
+	if (datas.empty())//链表中无数据节点，则返回数据包，包中无实际数据
 	{
-		mutex.unlock();
+		mutex.unlock();//记住这里需要解锁   
 		return XData();
 	}
-	XData d = datas.front();
+	XData d = datas.front();//返回头节点数据
 	datas.pop_front();
 	mutex.unlock();
 

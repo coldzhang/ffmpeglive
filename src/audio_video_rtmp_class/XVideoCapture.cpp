@@ -7,17 +7,30 @@ using namespace cv;
 
 #pragma comment(lib, "opencv_world320d.lib")
 
+/*
+视频采集类，采用工厂模式
+*/
 class CXVideoCapture : public XVideoCapture
 {
 public:
 	VideoCapture cam;
 
+	//因为继承了线程类，因此此处重写run方法在子线程中进行数据采集
 	void run()
 	{
 		Mat frame;
 
 		while (!isExit)
 		{
+			/*
+			VideoCapture的read函数是结合了grab和retrieve函数
+			grab:捕获下一帧,对于rtsp摄像头，其捕获的是一帧h264码流,因为rtsp网络摄像头内部已经做了编码操作，然后
+			网络传输过来的，因此在grab后，需要进行解码操作,解码成yuv图像，然而对于本地的普通摄像头，则是直接捕获的图像数据，摄像头
+			硬件内部给过来的是yuv图像数据。
+			retrieve:这个函数是内部做了图像转换，将yuv图像转换为rgb格式，因此frame中就是rgb图像格式数据。
+
+			read内部就是同时做了grab和retrieve的工作
+			*/
 			if (!cam.read(frame))
 			{
 				msleep(1);
