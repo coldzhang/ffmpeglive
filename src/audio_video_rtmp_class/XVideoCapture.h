@@ -1,6 +1,8 @@
 #pragma once
 
 #include "XDataThread.h"
+#include "XFilter.h"
+#include <vector>
 
 //继承了数据线程类
 class XVideoCapture : public XDataThread
@@ -16,7 +18,19 @@ public:
 	virtual void Stop() = 0;
 
 	virtual ~XVideoCapture();
+
+	//添加过滤器
+	void AddFilter(XFilter* f)
+	{
+		fmutex.lock();
+		filters.push_back(f);
+		fmutex.unlock();
+	}
 protected:
+	QMutex fmutex;
+
+	std::vector <XFilter*> filters;
+
 	XVideoCapture();
 };
 

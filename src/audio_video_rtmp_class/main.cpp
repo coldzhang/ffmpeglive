@@ -5,6 +5,7 @@
 #include "XRtmp.h"
 #include "XAudioRecord.h"
 #include "XVideoCapture.h"
+#include "XFilter.h"
 
 using namespace std;
 
@@ -16,7 +17,7 @@ int main(int argc, char *argv[])
 	QCoreApplication a(argc, argv);
 
 	//nginx-rtmp 直播服务器rtmp推流URL
-	char *outUrl = "rtmp://192.168.124.147/live";
+	char *outUrl = "rtmp://192.168.124.149/live";
 
 	int ret = 0;
 
@@ -27,6 +28,12 @@ int main(int argc, char *argv[])
 
 	///打开摄像机
 	XVideoCapture *xv = XVideoCapture::Get();
+
+	//添加滤波器
+	XFilter* xf = XFilter::Get();
+	xf->Set("d", 9);
+	xv->AddFilter(xf);
+
 	if (!xv->Init(0))//初始化视频录制器，打开摄像头
 	{
 		cout << "open camera failed!" << endl;

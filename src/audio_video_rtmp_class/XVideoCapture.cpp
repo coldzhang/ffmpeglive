@@ -42,6 +42,16 @@ public:
 				msleep(1);
 				continue;
 			}
+			
+			//图像滤波器处理
+			fmutex.lock();
+			for (int i = 0; i < filters.size(); i++)
+			{
+				Mat des;
+				filters[i]->Filter(&frame, &des);
+				frame = des;
+			}
+			fmutex.unlock();
 
 			//确保数据是连续的
 			XData d((char*)frame.data, frame.cols*frame.rows*frame.elemSize(), GetCurTime());//每采集一帧，记一次当前时间
