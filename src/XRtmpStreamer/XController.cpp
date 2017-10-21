@@ -1,0 +1,236 @@
+#include "XController.h"
+#include <iostream>
+#include "XVideoCapture.h"
+#include "XAudioRecord.h"
+#include "XMediaEncode.h"
+#include "XRtmp.h"
+
+using namespace std;
+
+//线程操作方法
+void XController::run()
+{
+	long long beginTime = GetCurTime();//取得当前一个起始时间戳，可以用于后面取时间戳差值，避免时间戳过大的问题
+
+	while (!isExit)
+	{
+		//一次读取一帧音频
+		XData ad = XAudioRecord::Get()->Pop();//读取音频包
+		XData vd = XVideoCapture::Get()->Pop();//读取视频包
+
+		if (ad.size <= 0 && vd.size <= 0)
+		{
+			msleep(1);
+			continue;
+		}
+
+		//处理音频
+		if (ad.size > 0)
+		{
+			ad.pts = ad.pts - beginTime;//减去一个记录的时间戳，然后重新存储时间戳，可以编码数据包中时间戳过大的问题
+
+										//重采样源数据
+			XData pcm = XMediaEncode::Get()->Resample(ad);
+			ad.Drop();
+
+
+			XData pkt = XMediaEncode::Get()->EncodeAudio(pcm);
+			if (pkt.size > 0)
+			{
+				//推流
+				if (XRtmp::Get()->SendFrame(pkt, aindex))
+				{
+					cout << "#" << flush;
+				}
+			}
+		}
+
+		//处理视频
+		if (vd.size > 0)
+		{
+			vd.pts = vd.pts - beginTime;
+
+			XData yuv = XMediaEncode::Get()->RGBToYUV(vd);
+			vd.Drop();
+
+			XData pkt = XMediaEncode::Get()->EncodeVideo(yuv);
+			if (pkt.size > 0)
+			{
+				//推流
+				if (XRtmp::Get()->SendFrame(pkt, vindex))
+				{
+					cout << "@" << flush;
+				}
+			}
+		}
+	}
+}
+
+//设定美颜参数
+bool XController::Set(std::string key, double val)
+{
+	XFilter::Get()->Set(key, val);
+
+	return true;
+}
+
+bool XController::Start()
+{
+	///1 设置磨皮过滤器
+	XVideoCapture::Get()->AddFilter(XFilter::Get());
+	cout << "1 设置磨皮过滤器" << endl;
+
+	///2 打开相机
+	if (camIndex >= 0)
+	{
+		if (!XVideoCapture::Get()->Init(camIndex))
+		{
+			err = "2 打开相机失败";
+			cout << err << endl;
+			return false;
+		}
+	}
+	else if (!inUrl.empty())
+	{
+		if (!XVideoCapture::Get()->Init(inUrl.c_str()))
+		{
+			err = "2 打开";
+			err += inUrl;
+			err += "相机失败";
+
+			cout << err << endl;
+			return false;
+		}
+	}
+	else
+	{
+		err = "2 请设置相机参数";
+		cout << err << endl;
+		return false;
+	}
+
+	cout << "2 相机打开成功！" << endl;
+
+	/// 3 qt音频开始录制
+	if (!XAudioRecord::Get()->Init())
+	{ 
+		err = "3 录音设备打开失败";
+		cout << err << endl;
+		return false;
+	}
+	cout << "3 录音设备打开成功" << endl;
+
+	///11 启动音视频录制线程
+	XAudioRecord::Get()->Start();
+	XVideoCapture::Get()->Start();
+
+	///音视频编码类
+	///4 初始化格式转换上下文
+	/// 初始化输出的数据结构
+	XMediaEncode::Get()->inWidth = XVideoCapture::Get()->width;
+	XMediaEncode::Get()->inHeight = XVideoCapture::Get()->height;
+	XMediaEncode::Get()->outWidth = XVideoCapture::Get()->width;
+	XMediaEncode::Get()->outHeight = XVideoCapture::Get()->height;
+	if (!XMediaEncode::Get()->InitScale())
+	{
+		err = "4 视频像素格式转换打开失败";
+		cout << err << endl;
+		return false;
+	}
+
+	cout << "4 视频像素格式转换打开成功" << endl;
+
+	///5 音频重采样上下文初始化
+	XMediaEncode::Get()->channels = XAudioRecord::Get()->channels;
+	XMediaEncode::Get()->nbSamples = XAudioRecord::Get()->nbSamples;
+	XMediaEncode::Get()->sampleRate = XAudioRecord::Get()->sampleRate;
+	if (!XMediaEncode::Get()->InitResample())
+	{
+		err = "5 音频重采样上下文初始化失败!";
+		cout << err << endl;
+		return false;
+	}
+	cout << "5 音频重采样上下文初始化成功" << endl;
+
+	///6 初始化音频编码器
+	if (!XMediaEncode::Get()->InitAudioCode())
+	{
+		err = "6 初始化音频编码器失败!";
+		cout << err << endl;
+		return false;
+	}
+	cout << "6 初始化音频编码器成功" << endl;
+
+	///7 初始化视频编码器
+	if (!XMediaEncode::Get()->InitVideoCodec())
+	{
+		err = "7 初始化视频编码器失败!";
+		cout << err << endl;
+		return false;
+	}
+	cout << "7 初始化视频编码器成功" << endl;
+
+	///8 创建输出封装器上下文
+	if (!XRtmp::Get()->Init(outUrl.c_str()))
+	{
+		err = "8 创建输出封装器上下文失败!";
+		cout << err << endl;
+		return false;
+	}
+	cout << "8 创建输出封装器上下文成功" << endl;
+
+	///9 添加音视频流
+	vindex = XRtmp::Get()->AddStream(XMediaEncode::Get()->vc);
+	aindex = XRtmp::Get()->AddStream(XMediaEncode::Get()->ac);
+	if (vindex < 0 || aindex < 0)
+	{
+		err = "9 添加音视频流失败!";
+		cout << err << endl;
+		return false;
+	}
+
+	cout << "9 添加音视频流成功" << endl;
+
+	///10 发送封装头
+	if (!XRtmp::Get()->SendHead())
+	{
+		err = "10 发送封装头失败!";
+		cout << err << endl;
+		return false;
+	}
+	cout << "10 发送封装头成功" << endl;
+
+	///11 启动音视频录制线程
+	//XAudioRecord::Get()->Start();
+	//XVideoCapture::Get()->Start();
+
+	//为了保持同步，先预先将音视频数据链表中的数据全部清除
+	XAudioRecord::Get()->Clear();
+	XAudioRecord::Get()->Clear();
+
+	XDataThread::Start();//开启这个XController类的线程
+	return true;
+}
+
+void XController::Stop()
+{
+	XDataThread::Stop();//停止XController类的当前线程
+	XAudioRecord::Get()->Stop();//停止音频采集线程
+	XVideoCapture::Get()->Stop();//停止视频采集线程
+	XMediaEncode::Get()->Close();//关闭音视频编码器
+	XRtmp::Get()->Close();//关闭推流器
+
+	camIndex = -1;
+	inUrl = "";
+	return;
+}
+
+XController::XController()
+{
+
+}
+
+
+XController::~XController()
+{
+}
