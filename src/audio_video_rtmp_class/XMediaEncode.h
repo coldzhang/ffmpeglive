@@ -31,7 +31,7 @@ public:
 	int fps = 25;
 
 	XSampleFMT outSampleFmt = X_FLATP;
-	int nbSample = 1024;
+	int nbSamples = 1024;
 
 	//工厂生产方法
 	static XMediaEncode* Get(unsigned char index = 0);
@@ -59,6 +59,8 @@ public:
 
 	//音频编码 返回值无需调用者清理
 	virtual XData EncodeAudio(XData frame) = 0;
+
+	virtual void Close() = 0;
 
 	virtual ~XMediaEncode();
 

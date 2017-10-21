@@ -6,6 +6,7 @@
 #include "XAudioRecord.h"
 #include "XVideoCapture.h"
 #include "XFilter.h"
+#include "XController.h"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication a(argc, argv);
 
+#if 0
 	//nginx-rtmp 直播服务器rtmp推流URL
 	char *outUrl = "rtmp://192.168.124.149/live";
 
@@ -81,7 +83,7 @@ int main(int argc, char *argv[])
 	*/
 	///2 音频重采样 上下文初始化 
 	xe->channels = channels;
-	xe->nbSample = nbSample;
+	xe->nbSamples = nbSample;
 	xe->sampleRate = sampleRate;
 	xe->inSampleFmt = XSampleFMT::X_S16;
 	xe->outSampleFmt = XSampleFMT::X_FLATP;
@@ -142,14 +144,27 @@ int main(int argc, char *argv[])
 
 	ar->Clear();//首先清除视频和音频录制链表中所有的数据
 	xv->Clear();
-	long long beginTime = GetCurTime();//取得当前一个起始时间戳，可以用于后面取时间戳差值，避免时间戳过大的问题
+#endif
 
+	const char *outUrl = "rtmp://192.168.124.150/live";
+
+	XController::Get()->Stop();
+	XController::Get()->camIndex = 0;
+	XController::Get()->outUrl = outUrl;
+	XController::Get()->Start();
+
+	long long beginTime = GetCurTime();
+	XController::Get()->wait();
+
+	//long long beginTime = GetCurTime();//取得当前一个起始时间戳，可以用于后面取时间戳差值，避免时间戳过大的问题
+
+#if 0
 	//一次读取一帧音频的字节数
 	for (;;)
 	{
 		//一次读取一帧音频
-		XData ad = ar->Pop();//读取音频包
-		XData vd = xv->Pop();//读取视频包
+		XData ad = XAudioRecord::Get()->Pop();//读取音频包
+		XData vd = XVideoCapture::Get()->Pop();//读取视频包
 
 		if (ad.size <= 0 && vd.size <= 0)
 		{
@@ -197,7 +212,8 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+#endif
 
-	getchar();
+	//getchar();
 	return a.exec();
 }
